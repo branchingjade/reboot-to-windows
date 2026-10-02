@@ -1,0 +1,11 @@
+{
+  "name": "Reboot to Windows",
+  "author": "branchingjade",
+  "flags": ["root"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["system", "boot", "utility"],
+    "description": "One-shot reboot from SteamOS into Windows 11 (UEFI BootNext); the next boot returns to SteamOS automatically. 一键从 SteamOS 重启进入 Windows 11，下次开机自动回到 SteamOS。",
+    "image": "https://raw.githubusercontent.com/branchingjade/reboot-to-windows/main/assets/thumbnail.png"
+  }
+}

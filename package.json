@@ -1,0 +1,52 @@
+{
+  "name": "reboot-to-windows",
+  "version": "1.0.0",
+  "description": "Decky Loader plugin: one-shot reboot from SteamOS into Windows 11 via UEFI BootNext.",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/branchingjade/reboot-to-windows.git"
+  },
+  "keywords": [
+    "decky",
+    "plugin",
+    "steam-deck",
+    "steamos",
+    "windows",
+    "dual-boot",
+    "efi",
+    "bootnext"
+  ],
+  "author": "branchingjade",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/branchingjade/reboot-to-windows/issues"
+  },
+  "homepage": "https://github.com/branchingjade/reboot-to-windows#readme",
+  "devDependencies": {
+    "@decky/rollup": "^1.0.2",
+    "@decky/ui": "^4.11.0",
+    "@rollup/rollup-linux-x64-musl": "^4.53.3",
+    "@types/react": "19.1.1",
+    "@types/react-dom": "19.1.1",
+    "rollup": "^4.53.3",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@decky/api": "^1.1.3",
+    "react-icons": "^5.3.0",
+    "tslib": "^2.7.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
+    }
+  }
+}
