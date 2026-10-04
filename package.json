@@ -1,6 +1,6 @@
 {
   "name": "reboot-to-windows",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Decky Loader plugin: one-shot reboot from SteamOS into Windows 11 via UEFI BootNext.",
   "type": "module",
   "scripts": {

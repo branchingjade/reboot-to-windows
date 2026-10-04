@@ -135,6 +135,7 @@ const strings = {
         errRead: "读取 UEFI 引导项失败",
         errNeedsPrivileges: "插件后端没有 root 权限，无法读写 UEFI 引导项。请确认 plugin.json 里有 \"flags\": [\"root\"]，或在终端里以 root 身份安装 /etc/sudoers.d/zz-steamos-switch。",
         errSet: "设置下次启动项失败",
+        errReboot: "重启命令没有生效，本次切换未完成",
         errNoEntry: "没有找到 Windows 引导条目，已取消操作",
         errClear: "清除排队的启动项失败",
         errUnexpected: "操作失败",
@@ -160,6 +161,7 @@ const strings = {
         errRead: "Could not read the UEFI boot entries",
         errNeedsPrivileges: "The plugin backend is not running as root, so it cannot read or write the UEFI boot variables. Make sure plugin.json declares \"flags\": [\"root\"], or install /etc/sudoers.d/zz-steamos-switch as root.",
         errSet: "Could not set the next boot entry",
+        errReboot: "The restart command did not take effect, nothing was switched",
         errNoEntry: "No Windows boot entry was found, nothing was changed",
         errClear: "Could not clear the queued boot entry",
         errUnexpected: "Operation failed",
@@ -182,6 +184,8 @@ function RebootToWindowsPanel() {
                 return t.errNeedsPrivileges;
             case "efibootmgr_set_failed":
                 return t.errSet;
+            case "reboot_failed":
+                return t.errReboot;
             case "no_windows_entry":
                 return t.errNoEntry;
             case "efibootmgr_clear_failed":

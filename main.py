@@ -52,6 +52,28 @@ def _is_root():
         return False
 
 
+# Decky's loader is a PyInstaller one-file build: it exports LD_LIBRARY_PATH
+# pointing at its own /tmp/_MEIxxxx bundle, which ships an older libcrypto.so.3.
+# Plugin backends inherit that environment, and /usr/bin/systemctl links against
+# libsystemd-shared, which needs OPENSSL_3.4.0, so systemctl dies inside the
+# dynamic loader before logind is ever contacted:
+#
+#   /usr/bin/systemctl: /tmp/_MEI.../libcrypto.so.3: version `OPENSSL_3.4.0'
+#   not found (required by /usr/lib/systemd/libsystemd-shared-257.7-*.so)
+#
+# efibootmgr does not use OpenSSL, which is why setting BootNext kept working
+# while the reboot silently did nothing (the panel then looked like it had
+# "queued" the switch). Strip the injected library paths from every child.
+_ENV_DROP = ("LD_LIBRARY_PATH", "LD_PRELOAD", "LD_AUDIT", "LD_DEBUG")
+
+
+def _child_env():
+    env = dict(os.environ)
+    for key in _ENV_DROP:
+        env.pop(key, None)
+    return env
+
+
 def _install_sudoers_rule(force=False):
     """Re-create the NOPASSWD drop-in. Only meaningful when running as root."""
     if not _is_root():
@@ -84,7 +106,9 @@ def _run_sync(argv, timeout=5):
         cmd = argv
     else:
         cmd = ["sudo", "-n"] + argv
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    return subprocess.run(
+        cmd, capture_output=True, text=True, timeout=timeout, env=_child_env(),
+    )
 
 
 def _parse_boot_next(text):
@@ -101,10 +125,41 @@ def _error_code_for(stderr):
     return "efibootmgr_read_failed"
 
 
-def _reboot_argv():
+def _reboot_argvs():
+    """Candidate reboot commands, best first. ``sudo`` sanitizes the environment
+    on its own, so it stays a valid fallback if the direct exec ever breaks."""
     if _is_root():
-        return [SYSTEMCTL, "reboot"]
-    return ["sudo", "-n", SYSTEMCTL, "reboot"]
+        return [[SYSTEMCTL, "reboot"], ["sudo", "-n", SYSTEMCTL, "reboot"]]
+    return [["sudo", "-n", SYSTEMCTL, "reboot"]]
+
+
+def _dispatch_reboot(timeout=8):
+    """Fire the reboot and report whether it was actually accepted.
+
+    A bare ``Popen`` used to hide the failure completely: the child aborted in
+    the dynamic loader and the panel still claimed success. Now the command is
+    reaped, its exit status is checked, and a failing direct exec is retried
+    through ``sudo -n``.
+    """
+    last = ""
+    for argv in _reboot_argvs():
+        try:
+            proc = subprocess.Popen(
+                argv, env=_child_env(),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+            try:
+                _, err = proc.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                # Still running after the grace period: the shutdown is under way.
+                return {"ok": True}
+            if proc.returncode == 0:
+                return {"ok": True}
+            last = (err or "").strip() or "rc=%s" % proc.returncode
+        except Exception as e:  # noqa: BLE001 - reported to the frontend
+            last = str(e)
+        decky.logger.error("reboot via %s failed: %s", argv, last)
+    return {"ok": False, "error": last or "reboot command failed"}
 
 
 class Plugin:
@@ -182,8 +237,14 @@ class Plugin:
                     "error_code": "efibootmgr_set_failed",
                     "error": (r.stderr or "").strip(),
                 }
-            subprocess.Popen(_reboot_argv())
-            decky.logger.info("switch: reboot command dispatched")
+            result = await asyncio.to_thread(_dispatch_reboot)
+            decky.logger.info("switch: reboot dispatch -> %s", result)
+            if not result.get("ok"):
+                return {
+                    "ok": False,
+                    "error_code": "reboot_failed",
+                    "error": result.get("error", ""),
+                }
             return {"ok": True}
         except Exception as e:
             decky.logger.error("switch exception: %s", e)

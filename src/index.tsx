@@ -45,6 +45,8 @@ function RebootToWindowsPanel() {
         return t.errNeedsPrivileges;
       case "efibootmgr_set_failed":
         return t.errSet;
+      case "reboot_failed":
+        return t.errReboot;
       case "no_windows_entry":
         return t.errNoEntry;
       case "efibootmgr_clear_failed":
